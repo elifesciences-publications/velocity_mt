@@ -1,0 +1,166 @@
+clear all
+angle1=0;
+swap=0;
+numImages=0;
+
+foldername=input('Specify your folder path: ','s');
+
+
+ if foldername(1)=='/'
+    foldername=foldername(2:end);
+end
+if foldername(end)~='/'
+    foldername=strcat(foldername,'/');
+end
+
+while exist (foldername) ~=7 % tests whether folder exists
+    disp ('Error: The folder path does not exist.')
+    foldername=input('Specify your folder path: ','s');
+    if foldername(1)=='/'
+        foldername=foldername(2:end);
+    end
+    if foldername(end)~='/'
+        foldername=strcat(foldername,'/');
+    end
+end
+
+while numImages==0 % tests whether files with the given path exists
+    filename=input('Specify your filename using the first letters of your files: ','s');
+    filename=strcat(foldername,filename,'*.tif');
+    images=dir(filename);
+    numImages = numel(images); %finds the number of images in the directory
+    if numImages==0
+        disp ('Error: Files with the specified name do not exist')
+    end
+end
+
+  %  f1=input('Enter a name for saving your kymograph: ','s');
+
+for i=1:numImages
+    image=strcat(foldername,images(i).name);
+    img=imread(image); %read image
+ %   imshow(img,'InitialMagnification','fit')
+ K=img;
+ %I=imread('m8g05.tif');
+C = imadjust(K); %adjust image brightness
+%J = imcrop(C,[0 0 100 50]);
+I=edge(C,'log');
+G=I;
+%detecting edges 
+% C(C<225)=0;
+% s=strel('disk',1,8);%Structuring element
+% D=~im2bw(C);%binary Image%
+% F=imerode(D,s)
+
+%Erode the image by structuring element
+%figure,imshow(C);title('Original Image');
+%figure,imshow(D);title('Binary Image');
+%figure,imshow(D-F);title('Boundary extracted Image');
+%G=D-F;
+% saveas(imshow(C),sprintf('original%d.png',i));
+% saveas(imshow(G),sprintf('boundary%d.png',i));
+
+[valid, first] = max(G,[],2);
+first(~valid) = NaN;
+[~, last] = max(fliplr(G),[],2);
+last = size(G,2)-last+1;
+last(~valid) = NaN;
+
+%position vs time
+t=1:size(G);
+t=t';
+last1=last-min(last);
+last1=last1-max(last1);
+last1=-last1;
+last1=smooth(last1,10);
+figure;
+%plot(t,last1)
+
+%velocity vs time
+first1=smooth(first,10);
+t=t*3;
+x=first1
+x=x*65;
+dx = x(2:end) - x(1:end-1);
+dt = t(2:end) - t(1:end-1);
+
+t=t-min(t)*2;
+v1=dx./dt;
+%figure;
+%plot(t(2:end),v1);
+t3=t(2:end);
+%saveas(k,sprintf('velocity%d.fig',i));
+
+%overlap vs time
+overlap=last-first;
+%overlap=smooth(overlap,100);
+%figure;
+%plot(t,overlap);
+%saveas(f,sprintf('overlapl%d.fig',i));
+
+%overlap vs velocity
+%figure;
+%plot(v1,overlap(2:end));
+%saveas(f1,sprintf('overlap_velocity%d.fig',i));
+
+%create plots of velocity, position vs. time
+%figure;
+t2=t(2:end)
+%figure;
+h1 = axes
+%plot(t2,overlap(2:end))
+%plot(t2,smooth(v1,60))
+set(h1, 'Ydir', 'normal')
+set(h1, 'YAxisLocation', 'Right')
+h2 = axes
+%plot(t2,smooth(x(2:end),50))
+set(h2, 'XLim', get(h1, 'XLim'))
+set(h2, 'Color', 'None')
+set(h2, 'Xtick', [])
+end
+
+normal_overlap=(overlap-min(overlap))/(max(overlap)-min(overlap))
+
+%( jx=1:96;
+% jx=double(jx);
+% J=double(J);
+% J=J'
+% jx=jx';
+
+
+% P2=[]; P1=[]; P=[]; P1x=[]; P2x=[]; P_width=[];
+% for i = 1:30
+%    %t=figure;
+% %plot(jx,J(:,i))
+% %saveas(t,sprintf('intensity_time%d.fig',i));
+% %b=figure;
+% [peakLoc, peakMag]=peakfinder(J(:,i),10000)
+% P=[P; ones(size(peakLoc))*i, peakLoc, peakMag]
+% %saveas(b,sprintf('intensity_time%d.fig',i));
+% end
+% 
+% for k = 31:50
+%    %t=figure;
+% %plot(jx,J(:,i))
+% %saveas(t,sprintf('intensity_time%d.fig',i));
+% %b=figure;
+% [peakLoc, peakMag]=peakfinder(J(:,k),3000)
+% P=[P; ones(size(peakLoc))*k, peakLoc, peakMag]
+% end
+% 
+% for j=1:length(P)./2
+%   j = j*2;
+% P1=[P1;P(j,:)]
+% end
+% 
+% for l=0:length(P)./2-1
+%   l=l*2+1;
+% P2=[P2;P(l,:)]
+% end
+% plot(P1(:,1),P1(:,2)); hold on; plot(P2(:,1),P2(:,2))
+% figure;
+% plot(P1(:,1),P1(:,3)); hold on; plot(P2(:,1),P2(:,3))
+% P1x=P1(:,1); P2x=P2(:,1);
+% P_width=P1(:,2)-P2(:,2);
+% figure;
+% plot(P1x,P_width);
